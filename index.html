@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linha do Tempo - Impactos do IOF no RA</title>
+    <meta name="description" content="Sistema interativo para análise dos impactos do IOF por alíquota">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 50%, #5eead4 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInUp 1s ease-out;
+            position: relative;
+        }
+
+        .logo-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 120px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+        }
+
+        .logo-container:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .header-content {
+            margin-top: 20px;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .period-badge {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 12px 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+            color: #4b5563;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .legend-038 {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 2px solid #3b82f6;
+        }
+
+        .legend-312 {
+            background: #fecaca;
+            color: #dc2626;
+            border: 2px solid #ef4444;
+        }
+
+        .legend-35 {
+            background: #fef3c7;
+            color: #d97706;
+            border: 2px solid #f59e0b;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .nav-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 16px;
+            padding: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-button {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 4px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .nav-button.active {
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .nav-button:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateY(-1px);
+        }
+
+        .month-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .month-button {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .month-button.active {
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+            transform: translateY(-2px);
+            border-color: transparent;
+        }
+
+        .month-button:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            color: #0f766e;
+        }
+
+        .card-title::before {
+            content: "📊";
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 24px;
+            border-radius: 16px;
+            border: 3px solid;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-item:hover {
+            transform: translateY(-4px);
+        }
+
+        .summary-total {
+            background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+            border-color: #d1d5db;
+        }
+
+        .summary-038 {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #3b82f6;
+        }
+
+        .summary-312 {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            border-color: #ef4444;
+        }
+
+        .summary-35 {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+        }
+
+        .summary-label {
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 800;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .modal-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            color: #1f2937;
+        }
+
+        .modal-title::before {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+
+        .modal-title.aereo::before { content: "✈️"; }
+        .modal-title.maritimo::before { content: "🚢"; }
+        .modal-title.pickup::before { content: "🚛"; }
+
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .modal-row.total {
+            background: #f9fafb;
+            font-weight: 700;
+            border: 2px solid #e5e7eb;
+        }
+
+        .modal-row.iof-038 {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+        }
+
+        .modal-row.iof-312 {
+            background: #fecaca;
+            border: 2px solid #ef4444;
+            color: #dc2626;
+        }
+
+        .modal-row.iof-35 {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #d97706;
+        }
+
+        .participation {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border-left: 6px solid #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .participation-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+
+        .participation-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            text-align: center;
+        }
+
+        .participation-item {
+            font-size: 0.8rem;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .participation-value {
+            font-weight: 800;
+            display: block;
+            font-size: 1rem;
+        }
+
+        .participation-038 .participation-value { color: #1e40af; }
+        .participation-312 .participation-value { color: #dc2626; }
+        .participation-35 .participation-value { color: #d97706; }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chart-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #0f766e;
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-title::before {
+            content: "📈";
+            margin-right: 12px;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            height: 320px;
+            margin: 24px 0;
+            padding: 24px;
+            background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bar {
+            width: 45px;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .bar-038 { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+        .bar-312 { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .bar-35 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .bar-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 12px;
+            text-align: center;
+            color: #374151;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-chart-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 28px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            padding: 28px;
+            border-radius: 20px;
+            border: 3px solid;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .stat-card.stat-038 {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #3b82f6;
+        }
+
+        .stat-card.stat-312 {
+            background: linear-gradient(135deg, #fecaca, #fca5a5);
+            border-color: #ef4444;
+        }
+
+        .stat-card.stat-35 {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+        }
+
+        .stat-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-title.stat-038 { color: #1e40af; }
+        .stat-title.stat-312 { color: #dc2626; }
+        .stat-title.stat-35 { color: #d97706; }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .stat-total {
+            border-top: 3px solid;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-total-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 40px;
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .footer-content {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 700px;
+            margin: 0 auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .footer p {
+            margin-bottom: 12px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .footer-credits {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .logo-container {
+                position: relative;
+                margin: 0 auto 20px;
+            }
+
+            .header-content {
+                margin-top: 0;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bar-chart {
+                height: 280px;
+                padding: 16px;
+            }
+
+            .bar {
+                width: 35px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .month-navigation {
+                gap: 12px;
+            }
+
+            .month-button {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+
+            .chart-legend {
+                gap: 16px;
+            }
+
+            .legend {
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .legend-chart-item {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+
+            .legend-color {
+                width: 16px;
+                height: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <!-- Logo Container -->
+            <div class="logo-container">
+                <img src="img/logo.png" alt="PGL Logo" style="display: none;" id="logo-img">
+                <span id="logo-placeholder">Logo PGL</span>
+            </div>
+            
+            <div class="header-content">
+                <h1>Impactos do IOF no RA</h1>
+                <p>Análise dos impactos por alíquota do Imposto sobre Operações Financeiras</p>
+                <div class="period-badge">📅 Período: Março a Maio de 2025</div>
+                <div class="legend">
+                    <span class="legend-item legend-038">🔵 IOF 0,38%</span>
+                    <span class="legend-item legend-312">🔴 IOF 3,12%</span>
+                    <span class="legend-item legend-35">🟡 IOF 3,5%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <div class="nav-container">
+                <button class="nav-button active" onclick="showView('timeline')">📅 Linha do Tempo</button>
+                <button class="nav-button" onclick="showView('charts')">📊 Análise por Alíquota</button>
+            </div>
+        </div>
+
+        <!-- Timeline View -->
+        <div id="timeline-view">
+            <!-- Month Navigation -->
+            <div class="month-navigation">
+                <button class="month-button active" onclick="showMonth('mar')">mar/2025</button>
+                <button class="month-button" onclick="showMonth('abr')">abr/2025</button>
+                <button class="month-button" onclick="showMonth('mai')">mai/2025</button>
+            </div>
+
+            <!-- Month Content -->
+            <div id="month-content">
+                <!-- Content will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Charts View -->
+        <div id="charts-view" class="hidden">
+            <!-- Bar Chart -->
+            
+
+            <!-- Statistics -->
+            <div class="chart-container">
+                <div class="chart-title">Resumo Estatístico por Alíquota</div>
+                <div class="stats-grid">
+                    <div class="stat-card stat-038">
+                        <div class="stat-title stat-038">🔵 IOF 0,38%</div>
+                        <div class="stat-row">
+                            <span>Mar:</span>
+                            <span>R$ 68.213,54</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Abr:</span>
+                            <span>R$ 100.018,05</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Mai:</span>
+                            <span>R$ 76.751,80</span>
+                        </div>
+                        <div class="stat-total">
+                            <span>Total:</span>
+                            <div class="stat-total-value stat-038">R$ 244.983,39</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-312">
+                        <div class="stat-title stat-312">🔴 IOF 3,12%</div>
+                        <div class="stat-row">
+                            <span>Mar:</span>
+                            <span>R$ 560.069,07</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Abr:</span>
+                            <span>R$ 821.200,85</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Mai:</span>
+                            <span>R$ 630.172,71</span>
+                        </div>
+                        <div class="stat-total">
+                            <span>Total:</span>
+                            <div class="stat-total-value stat-312">R$ 2.011.442,63</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-35">
+                        <div class="stat-title stat-35">🟡 IOF 3,5%</div>
+                        <div class="stat-row">
+                            <span>Mar:</span>
+                            <span>R$ 628.282,61</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Abr:</span>
+                            <span>R$ 921.218,90</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Mai:</span>
+                            <span>R$ 706.924,51</span>
+                        </div>
+                        <div class="stat-total">
+                            <span>Total:</span>
+                            <div class="stat-total-value stat-35">R$ 2.256.426,02</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <p><strong>📊 Dados referentes aos impactos do IOF no RA por alíquota - Período: Março a Maio de 2025</strong></p>
+                <p>Sistema desenvolvido para análise e acompanhamento dos indicadores fiscais por alíquota</p>
+                <div class="footer-credits">
+                    <span style="font-weight: 700; color: #0f766e;">PGL Brasil</span>
+                    <span>•</span>
+                    <span>Supply Chain Management</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados do IOF - Estrutura corrigida
+        const iofData = {
+            'mar': {
+                aereo: { valor: 15218296.22, iof_038: 57829.53, iof_312: 474810.84, iof_35: 532640.37 },
+                maritimo: { valor: 1584345.55, iof_038: 6020.51, iof_312: 49431.58, iof_35: 55452.09 },
+                pickup: { valor: 1148290.06, iof_038: 4363.50, iof_312: 35826.65, iof_35: 40190.15 },
+                total: { valor: 17950931.83, iof_038: 68213.54, iof_312: 560069.07, iof_35: 628282.61 }
+            },
+            'abr': {
+                aereo: { valor: 19725328.01, iof_038: 74956.25, iof_312: 615430.23, iof_35: 690386.48 },
+                maritimo: { valor: 4171780.57, iof_038: 15852.77, iof_312: 130159.55, iof_35: 146012.32 },
+                pickup: { valor: 2423431.53, iof_038: 9209.04, iof_312: 75611.06, iof_35: 84820.10 },
+                total: { valor: 26320540.11, iof_038: 100018.05, iof_312: 821200.85, iof_35: 921218.90 }
+            },
+            'mai': {
+                aereo: { valor: 14760582.47, iof_038: 56090.21, iof_312: 460530.17, iof_35: 516620.39 },
+                maritimo: { valor: 3361334.48, iof_038: 12773.07, iof_312: 104873.64, iof_35: 117646.71 },
+                pickup: { valor: 2075926.19, iof_038: 7888.52, iof_312: 64768.90, iof_35: 72657.42 },
+                total: { valor: 20197843.14, iof_038: 76751.80, iof_312: 630172.71, iof_35: 706924.51 }
+            }
+        };
+
+        let currentMonth = 'mar';
+        let currentView = 'timeline';
+
+        // Função para formatar moeda brasileira
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        // Função para calcular participação percentual
+        function calculateParticipation(modalValue, totalValue) {
+            if (totalValue === 0) return '0.0';
+            return ((modalValue / totalValue) * 100).toFixed(1);
+        }
+
+        // Função para alternar entre views
+        function showView(view) {
+            currentView = view;
+            
+            // Atualizar botões de navegação
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Mostrar/esconder views
+            if (view === 'timeline') {
+                document.getElementById('timeline-view').classList.remove('hidden');
+                document.getElementById('charts-view').classList.add('hidden');
+            } else {
+                document.getElementById('timeline-view').classList.add('hidden');
+                document.getElementById('charts-view').classList.remove('hidden');
+                generateBarChart();
+            }
+        }
+
+        // Função para alternar entre meses
+        function showMonth(month) {
+            currentMonth = month;
+            
+            // Atualizar botões de mês
+            document.querySelectorAll('.month-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            generateMonthContent();
+        }
+
+        // Função para gerar conteúdo do mês selecionado
+        function generateMonthContent() {
+            const data = iofData[currentMonth];
+            const monthNames = { 'mar': 'mar/2025', 'abr': 'abr/2025', 'mai': 'mai/2025' };
+            
+            const content = `
+                <div class="card">
+                    <div class="card-title">Resumo por Alíquota - ${monthNames[currentMonth]}</div>
+                    <div class="summary-grid">
+                        <div class="summary-item summary-total">
+                            <div class="summary-label">Valor Total das Operações</div>
+                            <div class="summary-value">${formatCurrency(data.total.valor)}</div>
+                        </div>
+                        <div class="summary-item summary-038">
+                            <div class="summary-label" style="color: #1e40af;">🔵 IOF 0,38%</div>
+                            <div class="summary-value" style="color: #1e40af;">${formatCurrency(data.total.iof_038)}</div>
+                        </div>
+                        <div class="summary-item summary-312">
+                            <div class="summary-label" style="color: #dc2626;">🔴 IOF 3,12%</div>
+                            <div class="summary-value" style="color: #dc2626;">${formatCurrency(data.total.iof_312)}</div>
+                        </div>
+                        <div class="summary-item summary-35">
+                            <div class="summary-label" style="color: #d97706;">🟡 IOF 3,5%</div>
+                            <div class="summary-value" style="color: #d97706;">${formatCurrency(data.total.iof_35)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-grid">
+                    ${generateModalCard('aereo', 'Aéreo', data)}
+                    ${generateModalCard('maritimo', 'Marítimo', data)}
+                    ${generateModalCard('pickup', 'Pickup', data)}
+                </div>
+            `;
+            
+            document.getElementById('month-content').innerHTML = content;
+        }
+
+        // Função para gerar card de modalidade
+        function generateModalCard(modal, title, data) {
+            const modalData = data[modal];
+            
+            return `
+                <div class="modal-card">
+                    <div class="modal-title ${modal}">${title}</div>
+                    <div class="modal-info">
+                        <div class="modal-row total">
+                            <span>Valor das Operações:</span>
+                            <span>${formatCurrency(modalData.valor)}</span>
+                        </div>
+                        
+                        <div class="modal-row iof-038">
+                            <span style="color: #1e40af; font-weight: 600;">🔵 IOF 0,38%:</span>
+                            <span style="color: #1e40af; font-weight: 700;">${formatCurrency(modalData.iof_038)}</span>
+                        </div>
+                        <div class="modal-row iof-312">
+                            <span style="color: #dc2626; font-weight: 600;">🔴 IOF 3,12%:</span>
+                            <span style="color: #dc2626; font-weight: 700;">${formatCurrency(modalData.iof_312)}</span>
+                        </div>
+                        <div class="modal-row iof-35">
+                            <span style="color: #d97706; font-weight: 600;">🟡 IOF 3,5%:</span>
+                            <span style="color: #d97706; font-weight: 700;">${formatCurrency(modalData.iof_35)}</span>
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função para gerar gráfico de barras
+      
+
+        // Verificar se logo existe e mostrar/esconder placeholder
+        function checkLogo() {
+            const logoImg = document.getElementById('logo-img');
+            const logoPlaceholder = document.getElementById('logo-placeholder');
+            
+            logoImg.onload = function() {
+                logoImg.style.display = 'block';
+                logoPlaceholder.style.display = 'none';
+            };
+            
+            logoImg.onerror = function() {
+                logoImg.style.display = 'none';
+                logoPlaceholder.style.display = 'block';
+            };
+            
+            // Tentar carregar a logo
+            logoImg.src = 'img/logo.png';
+        }
+
+        // Inicializar página quando DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Página carregada - Inicializando conteúdo');
+            generateMonthContent();
+            checkLogo();
+        });
+
+        // Fallback para garantir que o conteúdo seja gerado
+        window.addEventListener('load', function() {
+            if (!document.getElementById('month-content').innerHTML.trim()) {
+                console.log('Fallback - Gerando conteúdo');
+                generateMonthContent();
+            }
+        });
+    </script>
+</body>
+</html>
+
