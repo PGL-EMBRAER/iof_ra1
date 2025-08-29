@@ -111,14 +111,47 @@
             border: 2px solid #ef4444;
         }
 
+        .sync-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .sync-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-indicator.syncing {
+            background: #f59e0b;
+        }
+
+        .sync-indicator.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .excel-download {
             display: flex;
             justify-content: center;
+            gap: 16px;
             margin-bottom: 40px;
             animation: slideInLeft 1s ease-out;
         }
 
-        .excel-button {
+        .excel-button, .sync-button {
             background: linear-gradient(135deg, #059669, #10b981);
             color: white;
             border: none;
@@ -134,14 +167,22 @@
             gap: 12px;
         }
 
-        .excel-button:hover {
+        .sync-button {
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+        }
+
+        .excel-button:hover, .sync-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 40px rgba(5, 150, 105, 0.4);
-            background: linear-gradient(135deg, #047857, #059669);
         }
 
         .excel-button::before {
             content: "📊";
+            font-size: 1.5rem;
+        }
+
+        .sync-button::before {
+            content: "🔄";
             font-size: 1.5rem;
         }
 
@@ -209,6 +250,7 @@
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             animation: fadeInUp 0.8s ease-out;
+            page-break-inside: avoid;
         }
 
         .card-title {
@@ -450,6 +492,25 @@
             font-weight: 600;
         }
 
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -507,6 +568,26 @@
             .legend {
                 gap: 12px;
             }
+
+            .excel-download {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .modal {
+                display: none !important;
+            }
+            
+            .container {
+                max-width: none;
+                padding: 0;
+            }
         }
     </style>
 </head>
@@ -523,17 +604,26 @@
             <div class="header-content">
                 <h1>Impactos do IOF RA</h1>
                 <p>Análise dos impactos do Imposto sobre Operações Financeiras - Alíquota 3,12%</p>
-                <div class="period-badge">📅  2025</div>
+                <div class="period-badge">📅 2025</div>
                 <div class="legend">
                     <span class="legend-item">🔴 IOF 3,12%</span>
                 </div>
             </div>
         </div>
 
+        <!-- Sync Status -->
+        <div class="sync-status">
+            <div class="sync-indicator" id="syncIndicator"></div>
+            <span id="syncStatus">Conectado ao Google Sheets</span>
+        </div>
+
         <!-- Excel Download Button -->
         <div class="excel-download">
             <button class="excel-button" onclick="downloadExcel()">
                 Baixar Relatório Excel
+            </button>
+            <button class="sync-button" onclick="syncWithSheets()">
+                Sincronizar Dados
             </button>
         </div>
 
@@ -593,15 +683,21 @@
                 </div>
                 <div class="form-buttons">
                     <button type="button" class="btn-cancel" onclick="closeAddMonthModal()">Cancelar</button>
-                    <button type="submit" class="btn-save">Adicionar Mês</button>
+                    <button type="submit" class="btn-save">
+                        <span id="saveButtonText">Adicionar Mês</span>
+                        <span class="spinner hidden" id="saveSpinner"></span>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // Dados do IOF - Apenas 3,12%
-        const iofData = {
+        // Configuração do Google Sheets
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJkqq_7NF_JmRqtlSv_thg0MOeFBN0u7a_yCYNJP_241k3hNcMtmpXVWQDGyE6gpDA/exec';
+        
+        // Dados do IOF - Dados locais como fallback
+        let iofData = {
             'abr': {
                 aereo: { valor: 19725328.01, iof: 615430.23 },
                 maritimo: { valor: 4310823.85, iof: 134497.70 },
@@ -629,6 +725,71 @@
         };
 
         let currentMonth = 'abr';
+        let isLoading = false;
+
+        // Função para atualizar status de sincronização
+        function updateSyncStatus(status, message) {
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatus');
+            
+            indicator.className = `sync-indicator ${status}`;
+            statusText.textContent = message;
+        }
+
+        // Função para carregar dados do Google Sheets
+        async function loadDataFromSheets() {
+            updateSyncStatus('syncing', 'Sincronizando dados...');
+            
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // Mesclar dados do Google Sheets com dados locais
+                    Object.keys(result.data).forEach(month => {
+                        if (result.data[month]) {
+                            iofData[month] = result.data[month];
+                        }
+                    });
+                    
+                    updateSyncStatus('', 'Dados sincronizados');
+                    updateMonthNavigation();
+                    generateMonthContent();
+                } else {
+                    updateSyncStatus('error', 'Erro na sincronização');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                updateSyncStatus('error', 'Usando dados locais');
+            }
+        }
+
+        // Função para salvar dados no Google Sheets
+        async function saveDataToSheets(monthData) {
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'add',
+                        ...monthData
+                    })
+                });
+
+                const result = await response.json();
+                return result.success;
+            } catch (error) {
+                console.error('Erro ao salvar dados:', error);
+                return false;
+            }
+        }
+
+        // Função para sincronizar manualmente
+        async function syncWithSheets() {
+            await loadDataFromSheets();
+        }
 
         // Função para formatar moeda brasileira
         function formatCurrency(value) {
@@ -638,6 +799,46 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
+        }
+
+        // Função para converter mês para português
+        function getMonthName(monthKey) {
+            const monthNames = {
+                'abr': 'Abril/2025',
+                'mai': 'Maio/2025', 
+                'jun': 'Junho/2025',
+                'jul': 'Julho/2025',
+                'ago': 'Agosto/2025',
+                'set': 'Setembro/2025',
+                'out': 'Outubro/2025',
+                'nov': 'Novembro/2025',
+                'dez': 'Dezembro/2025'
+            };
+            return monthNames[monthKey] || monthKey.toUpperCase();
+        }
+
+        // Função para atualizar navegação de meses
+        function updateMonthNavigation() {
+            const navigation = document.querySelector('.month-navigation');
+            const addButton = navigation.querySelector('.add-month-button');
+            
+            // Remover botões de mês existentes (exceto o add button)
+            const monthButtons = navigation.querySelectorAll('.month-button');
+            monthButtons.forEach(button => button.remove());
+            
+            // Adicionar botões para todos os meses disponíveis
+            Object.keys(iofData).forEach(monthKey => {
+                const button = document.createElement('button');
+                button.className = 'month-button';
+                button.textContent = monthKey + '/2025';
+                button.onclick = () => showMonth(monthKey);
+                
+                if (monthKey === currentMonth) {
+                    button.classList.add('active');
+                }
+                
+                navigation.insertBefore(button, addButton);
+            });
         }
 
         // Função para alternar entre meses
@@ -656,16 +857,13 @@
         // Função para gerar conteúdo do mês selecionado
         function generateMonthContent() {
             const data = iofData[currentMonth];
-            const monthNames = { 
-                'abr': 'Abril/2025', 
-                'mai': 'Maio/2025', 
-                'jun': 'Junho/2025',
-                'jul': 'Julho/2025'
-            };
+            if (!data) return;
+            
+            const monthName = getMonthName(currentMonth);
             
             const content = `
                 <div class="card">
-                    <div class="card-title">Resumo IOF 3,12% - ${monthNames[currentMonth]}</div>
+                    <div class="card-title">Resumo IOF 3,12% - ${monthName}</div>
                     <div class="summary-grid">
                         <div class="summary-item summary-total">
                             <div class="summary-label">Valor Total das Operações</div>
@@ -719,11 +917,28 @@
         function closeAddMonthModal() {
             document.getElementById('addMonthModal').style.display = 'none';
             document.getElementById('addMonthForm').reset();
+            
+            // Reset loading state
+            document.getElementById('saveButtonText').textContent = 'Adicionar Mês';
+            document.getElementById('saveSpinner').classList.add('hidden');
+            document.querySelector('.btn-save').disabled = false;
         }
 
         // Função para adicionar novo mês
-        document.getElementById('addMonthForm').addEventListener('submit', function(e) {
+        document.getElementById('addMonthForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            if (isLoading) return;
+            isLoading = true;
+            
+            // Mostrar loading
+            const saveButton = document.querySelector('.btn-save');
+            const saveButtonText = document.getElementById('saveButtonText');
+            const saveSpinner = document.getElementById('saveSpinner');
+            
+            saveButton.disabled = true;
+            saveButtonText.textContent = 'Salvando...';
+            saveSpinner.classList.remove('hidden');
             
             const monthYear = document.getElementById('monthYear').value;
             const aereo = parseFloat(document.getElementById('aereoValue').value);
@@ -740,25 +955,39 @@
             // Criar chave única para o mês (primeiros 3 caracteres)
             const monthKey = monthYear.toLowerCase().substring(0, 3);
             
-            // Adicionar aos dados
-            iofData[monthKey] = {
-                aereo: { valor: aereo, iof: aereoIOF },
-                maritimo: { valor: maritimo, iof: maritimoIOF },
-                pickup: { valor: pickup, iof: pickupIOF },
-                total: { valor: totalValue, iof: totalIOF }
+            // Preparar dados para o Google Sheets
+            const newMonthData = {
+                mes: monthYear.charAt(0).toUpperCase() + monthYear.slice(1),
+                ano: 2025,
+                aereo: aereo,
+                maritimo: maritimo,
+                pickup: pickup
             };
             
-            // Adicionar botão na navegação
-            const navigation = document.querySelector('.month-navigation');
-            const addButton = navigation.querySelector('.add-month-button');
-            const newButton = document.createElement('button');
-            newButton.className = 'month-button';
-            newButton.textContent = monthYear;
-            newButton.onclick = () => showMonth(monthKey);
-            navigation.insertBefore(newButton, addButton);
+            // Tentar salvar no Google Sheets
+            const success = await saveDataToSheets(newMonthData);
             
-            closeAddMonthModal();
-            alert('Mês adicionado com sucesso!');
+            if (success) {
+                // Adicionar aos dados locais
+                iofData[monthKey] = {
+                    aereo: { valor: aereo, iof: aereoIOF },
+                    maritimo: { valor: maritimo, iof: maritimoIOF },
+                    pickup: { valor: pickup, iof: pickupIOF },
+                    total: { valor: totalValue, iof: totalIOF }
+                };
+                
+                updateMonthNavigation();
+                closeAddMonthModal();
+                
+                // Mostrar o novo mês
+                showMonth(monthKey);
+                updateSyncStatus('', 'Dados salvos com sucesso');
+            } else {
+                alert('Erro ao salvar no Google Sheets. Os dados foram salvos localmente.');
+                updateSyncStatus('error', 'Erro ao sincronizar');
+            }
+            
+            isLoading = false;
         });
 
         // Função para download do Excel
@@ -770,16 +999,9 @@
             excelData.push(['MÊS', 'MODALIDADE', 'VALOR OPERAÇÕES (R$)', 'IOF 3,12% (R$)']);
             
             // Dados por mês
-            const monthNames = {
-                'abr': 'ABRIL/2025',
-                'mai': 'MAIO/2025', 
-                'jun': 'JUNHO/2025',
-                'jul': 'JULHO/2025'
-            };
-            
             Object.keys(iofData).forEach(monthKey => {
                 const monthData = iofData[monthKey];
-                const monthName = monthNames[monthKey] || monthKey.toUpperCase();
+                const monthName = getMonthName(monthKey);
                 
                 // Adicionar dados de cada modalidade
                 excelData.push([monthName, 'Aéreo', monthData.aereo.valor, monthData.aereo.iof]);
@@ -870,8 +1092,13 @@
 
         // Inicializar página quando DOM estiver carregado
         document.addEventListener('DOMContentLoaded', function() {
-            generateMonthContent();
             checkLogo();
+            generateMonthContent();
+            
+            // Carregar dados do Google Sheets após 1 segundo
+            setTimeout(() => {
+                loadDataFromSheets();
+            }, 1000);
         });
 
         // Fallback para garantir que o conteúdo seja gerado
