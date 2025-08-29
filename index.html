@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linha do Tempo - Impactos do IOF no RA</title>
-    <meta name="description" content="Sistema interativo para análise dos impactos do IOF por alíquota">
+    <title>Impactos do IOF 3,12% no RA - 2025</title>
+    <meta name="description" content="Sistema interativo para análise dos impactos do IOF 3,12% no RA">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -105,65 +106,43 @@
             font-size: 0.875rem;
             font-weight: 600;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .legend-038 {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 2px solid #3b82f6;
-        }
-
-        .legend-312 {
             background: #fecaca;
             color: #dc2626;
             border: 2px solid #ef4444;
         }
 
-        .legend-35 {
-            background: #fef3c7;
-            color: #d97706;
-            border: 2px solid #f59e0b;
-        }
-
-        .navigation {
+        .excel-download {
             display: flex;
             justify-content: center;
             margin-bottom: 40px;
             animation: slideInLeft 1s ease-out;
         }
 
-        .nav-container {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(15px);
-            border-radius: 16px;
-            padding: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .nav-button {
-            background: transparent;
-            border: none;
-            padding: 12px 24px;
-            margin: 0 4px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-
-        .nav-button.active {
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
+        .excel-button {
+            background: linear-gradient(135deg, #059669, #10b981);
             color: white;
-            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.4);
-            transform: translateY(-1px);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(5, 150, 105, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .nav-button:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.7);
-            transform: translateY(-1px);
+        .excel-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(5, 150, 105, 0.4);
+            background: linear-gradient(135deg, #047857, #059669);
+        }
+
+        .excel-button::before {
+            content: "📊";
+            font-size: 1.5rem;
         }
 
         .month-navigation {
@@ -199,6 +178,26 @@
             background: rgba(255, 255, 255, 0.95);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .add-month-button {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-month-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
         }
 
         .card {
@@ -251,19 +250,9 @@
             border-color: #d1d5db;
         }
 
-        .summary-038 {
-            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-            border-color: #3b82f6;
-        }
-
-        .summary-312 {
+        .summary-iof {
             background: linear-gradient(135deg, #fecaca, #fca5a5);
             border-color: #ef4444;
-        }
-
-        .summary-35 {
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            border-color: #f59e0b;
         }
 
         .summary-label {
@@ -331,220 +320,10 @@
             border: 2px solid #e5e7eb;
         }
 
-        .modal-row.iof-038 {
-            background: #dbeafe;
-            border: 2px solid #3b82f6;
-            color: #1e40af;
-        }
-
-        .modal-row.iof-312 {
+        .modal-row.iof {
             background: #fecaca;
             border: 2px solid #ef4444;
             color: #dc2626;
-        }
-
-        .modal-row.iof-35 {
-            background: #fef3c7;
-            border: 2px solid #f59e0b;
-            color: #d97706;
-        }
-
-        .participation {
-            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-            border-left: 6px solid #10b981;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-        }
-
-        .participation-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #374151;
-        }
-
-        .participation-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            text-align: center;
-        }
-
-        .participation-item {
-            font-size: 0.8rem;
-            padding: 8px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .participation-value {
-            font-weight: 800;
-            display: block;
-            font-size: 1rem;
-        }
-
-        .participation-038 .participation-value { color: #1e40af; }
-        .participation-312 .participation-value { color: #dc2626; }
-        .participation-35 .participation-value { color: #d97706; }
-
-        .chart-container {
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 20px;
-            padding: 32px;
-            margin-bottom: 32px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .chart-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-            color: #0f766e;
-            display: flex;
-            align-items: center;
-        }
-
-        .chart-title::before {
-            content: "📈";
-            margin-right: 12px;
-        }
-
-        .bar-chart {
-            display: flex;
-            align-items: end;
-            justify-content: space-around;
-            height: 320px;
-            margin: 24px 0;
-            padding: 24px;
-            background: linear-gradient(135deg, #f9fafb, #f3f4f6);
-            border-radius: 16px;
-            border: 2px solid #e5e7eb;
-        }
-
-        .bar-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .bar {
-            width: 45px;
-            border-radius: 6px 6px 0 0;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .bar:hover {
-            opacity: 0.8;
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-        }
-
-        .bar-038 { background: linear-gradient(135deg, #3b82f6, #1e40af); }
-        .bar-312 { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .bar-35 { background: linear-gradient(135deg, #f59e0b, #d97706); }
-
-        .bar-label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-top: 12px;
-            text-align: center;
-            color: #374151;
-        }
-
-        .chart-legend {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .legend-chart-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 28px;
-            margin-bottom: 32px;
-        }
-
-        .stat-card {
-            padding: 28px;
-            border-radius: 20px;
-            border: 3px solid;
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-        }
-
-        .stat-card.stat-038 {
-            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-            border-color: #3b82f6;
-        }
-
-        .stat-card.stat-312 {
-            background: linear-gradient(135deg, #fecaca, #fca5a5);
-            border-color: #ef4444;
-        }
-
-        .stat-card.stat-35 {
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            border-color: #f59e0b;
-        }
-
-        .stat-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .stat-title.stat-038 { color: #1e40af; }
-        .stat-title.stat-312 { color: #dc2626; }
-        .stat-title.stat-35 { color: #d97706; }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        .stat-total {
-            border-top: 3px solid;
-            padding-top: 16px;
-            margin-top: 16px;
-        }
-
-        .stat-total-value {
-            font-size: 1.4rem;
-            font-weight: 800;
         }
 
         .footer {
@@ -582,6 +361,93 @@
 
         .hidden {
             display: none;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #14b8a6;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-save {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         @keyframes fadeInUp {
@@ -629,19 +495,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .bar-chart {
-                height: 280px;
-                padding: 16px;
-            }
-
-            .bar {
-                width: 35px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
             .month-navigation {
                 gap: 12px;
             }
@@ -651,24 +504,8 @@
                 font-size: 0.9rem;
             }
 
-            .chart-legend {
-                gap: 16px;
-            }
-
             .legend {
                 gap: 12px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .legend-chart-item {
-                font-size: 0.8rem;
-                padding: 6px 12px;
-            }
-
-            .legend-color {
-                width: 16px;
-                height: 16px;
             }
         }
     </style>
@@ -684,117 +521,43 @@
             </div>
             
             <div class="header-content">
-                <h1>Impactos do IOF no RA</h1>
-                <p>Análise dos impactos por alíquota do Imposto sobre Operações Financeiras</p>
-                <div class="period-badge">📅 Período: Março a Maio de 2025</div>
+                <h1>Impactos do IOF 3,12% no RA</h1>
+                <p>Análise dos impactos do Imposto sobre Operações Financeiras - Alíquota 3,12%</p>
+                <div class="period-badge">📅 Período: Abril a Julho de 2025</div>
                 <div class="legend">
-                    <span class="legend-item legend-038">🔵 IOF 0,38%</span>
-                    <span class="legend-item legend-312">🔴 IOF 3,12%</span>
-                    <span class="legend-item legend-35">🟡 IOF 3,5%</span>
+                    <span class="legend-item">🔴 IOF 3,12%</span>
                 </div>
             </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="navigation">
-            <div class="nav-container">
-                <button class="nav-button active" onclick="showView('timeline')">📅 Linha do Tempo</button>
-                <button class="nav-button" onclick="showView('charts')">📊 Análise por Alíquota</button>
-            </div>
+        <!-- Excel Download Button -->
+        <div class="excel-download">
+            <button class="excel-button" onclick="downloadExcel()">
+                Baixar Relatório Excel
+            </button>
         </div>
 
-        <!-- Timeline View -->
-        <div id="timeline-view">
-            <!-- Month Navigation -->
-            <div class="month-navigation">
-                <button class="month-button active" onclick="showMonth('mar')">mar/2025</button>
-                <button class="month-button" onclick="showMonth('abr')">abr/2025</button>
-                <button class="month-button" onclick="showMonth('mai')">mai/2025</button>
-            </div>
-
-            <!-- Month Content -->
-            <div id="month-content">
-                <!-- Content will be dynamically generated -->
-            </div>
+        <!-- Month Navigation -->
+        <div class="month-navigation">
+            <button class="month-button active" onclick="showMonth('abr')">abr/2025</button>
+            <button class="month-button" onclick="showMonth('mai')">mai/2025</button>
+            <button class="month-button" onclick="showMonth('jun')">jun/2025</button>
+            <button class="month-button" onclick="showMonth('jul')">jul/2025</button>
+            <button class="add-month-button" onclick="openAddMonthModal()">
+                ➕ Adicionar Novo Mês
+            </button>
         </div>
 
-        <!-- Charts View -->
-        <div id="charts-view" class="hidden">
-            <!-- Bar Chart -->
-            
-
-            <!-- Statistics -->
-            <div class="chart-container">
-                <div class="chart-title">Resumo Estatístico por Alíquota</div>
-                <div class="stats-grid">
-                    <div class="stat-card stat-038">
-                        <div class="stat-title stat-038">🔵 IOF 0,38%</div>
-                        <div class="stat-row">
-                            <span>Mar:</span>
-                            <span>R$ 68.213,54</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Abr:</span>
-                            <span>R$ 100.018,05</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Mai:</span>
-                            <span>R$ 76.751,80</span>
-                        </div>
-                        <div class="stat-total">
-                            <span>Total:</span>
-                            <div class="stat-total-value stat-038">R$ 244.983,39</div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card stat-312">
-                        <div class="stat-title stat-312">🔴 IOF 3,12%</div>
-                        <div class="stat-row">
-                            <span>Mar:</span>
-                            <span>R$ 560.069,07</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Abr:</span>
-                            <span>R$ 821.200,85</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Mai:</span>
-                            <span>R$ 630.172,71</span>
-                        </div>
-                        <div class="stat-total">
-                            <span>Total:</span>
-                            <div class="stat-total-value stat-312">R$ 2.011.442,63</div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card stat-35">
-                        <div class="stat-title stat-35">🟡 IOF 3,5%</div>
-                        <div class="stat-row">
-                            <span>Mar:</span>
-                            <span>R$ 628.282,61</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Abr:</span>
-                            <span>R$ 921.218,90</span>
-                        </div>
-                        <div class="stat-row">
-                            <span>Mai:</span>
-                            <span>R$ 706.924,51</span>
-                        </div>
-                        <div class="stat-total">
-                            <span>Total:</span>
-                            <div class="stat-total-value stat-35">R$ 2.256.426,02</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Month Content -->
+        <div id="month-content">
+            <!-- Content will be dynamically generated -->
         </div>
 
         <!-- Footer -->
         <div class="footer">
             <div class="footer-content">
-                <p><strong>📊 Dados referentes aos impactos do IOF no RA por alíquota - Período: Março a Maio de 2025</strong></p>
-                <p>Sistema desenvolvido para análise e acompanhamento dos indicadores fiscais por alíquota</p>
+                <p><strong>📊 Dados referentes aos impactos do IOF 3,12% no RA - Período: Abril a Julho de 2025</strong></p>
+                <p>Sistema desenvolvido para análise e acompanhamento dos indicadores fiscais</p>
                 <div class="footer-credits">
                     <span style="font-weight: 700; color: #0f766e;">PGL Brasil</span>
                     <span>•</span>
@@ -804,31 +567,68 @@
         </div>
     </div>
 
+    <!-- Modal para Adicionar Novo Mês -->
+    <div class="modal" id="addMonthModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Novo Mês</h2>
+                <button class="close-button" onclick="closeAddMonthModal()">×</button>
+            </div>
+            <form id="addMonthForm">
+                <div class="form-group">
+                    <label class="form-label">Mês/Ano:</label>
+                    <input type="text" class="form-input" id="monthYear" placeholder="ago/2025" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Aéreo (R$):</label>
+                    <input type="number" class="form-input" id="aereoValue" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Marítimo (R$):</label>
+                    <input type="number" class="form-input" id="maritimoValue" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pickup (R$):</label>
+                    <input type="number" class="form-input" id="pickupValue" step="0.01" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeAddMonthModal()">Cancelar</button>
+                    <button type="submit" class="btn-save">Adicionar Mês</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Dados do IOF - Estrutura corrigida
+        // Dados do IOF - Apenas 3,12%
         const iofData = {
-            'mar': {
-                aereo: { valor: 15218296.22, iof_038: 57829.53, iof_312: 474810.84, iof_35: 532640.37 },
-                maritimo: { valor: 1584345.55, iof_038: 6020.51, iof_312: 49431.58, iof_35: 55452.09 },
-                pickup: { valor: 1148290.06, iof_038: 4363.50, iof_312: 35826.65, iof_35: 40190.15 },
-                total: { valor: 17950931.83, iof_038: 68213.54, iof_312: 560069.07, iof_35: 628282.61 }
-            },
             'abr': {
-                aereo: { valor: 19725328.01, iof_038: 74956.25, iof_312: 615430.23, iof_35: 690386.48 },
-                maritimo: { valor: 4171780.57, iof_038: 15852.77, iof_312: 130159.55, iof_35: 146012.32 },
-                pickup: { valor: 2423431.53, iof_038: 9209.04, iof_312: 75611.06, iof_35: 84820.10 },
-                total: { valor: 26320540.11, iof_038: 100018.05, iof_312: 821200.85, iof_35: 921218.90 }
+                aereo: { valor: 19725328.01, iof: 615430.23 },
+                maritimo: { valor: 4310823.85, iof: 134497.70 },
+                pickup: { valor: 2455779.51, iof: 76620.32 },
+                total: { valor: 26491931.37, iof: 826548.26 }
             },
             'mai': {
-                aereo: { valor: 14760582.47, iof_038: 56090.21, iof_312: 460530.17, iof_35: 516620.39 },
-                maritimo: { valor: 3361334.48, iof_038: 12773.07, iof_312: 104873.64, iof_35: 117646.71 },
-                pickup: { valor: 2075926.19, iof_038: 7888.52, iof_312: 64768.90, iof_35: 72657.42 },
-                total: { valor: 20197843.14, iof_038: 76751.80, iof_312: 630172.71, iof_35: 706924.51 }
+                aereo: { valor: 15889123.14, iof: 495740.64 },
+                maritimo: { valor: 3361334.48, iof: 104873.64 },
+                pickup: { valor: 2101875.29, iof: 65578.51 },
+                total: { valor: 21352332.91, iof: 666192.79 }
+            },
+            'jun': {
+                aereo: { valor: 24999881.54, iof: 779996.30 },
+                maritimo: { valor: 2385470.05, iof: 74426.67 },
+                pickup: { valor: 2052957.20, iof: 64052.26 },
+                total: { valor: 29438308.79, iof: 918475.23 }
+            },
+            'jul': {
+                aereo: { valor: 31490252.25, iof: 982495.87 },
+                maritimo: { valor: 2076280.30, iof: 64779.95 },
+                pickup: { valor: 2400006.46, iof: 74880.20 },
+                total: { valor: 35966539.01, iof: 1122156.02 }
             }
         };
 
-        let currentMonth = 'mar';
-        let currentView = 'timeline';
+        let currentMonth = 'abr';
 
         // Função para formatar moeda brasileira
         function formatCurrency(value) {
@@ -838,33 +638,6 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value);
-        }
-
-        // Função para calcular participação percentual
-        function calculateParticipation(modalValue, totalValue) {
-            if (totalValue === 0) return '0.0';
-            return ((modalValue / totalValue) * 100).toFixed(1);
-        }
-
-        // Função para alternar entre views
-        function showView(view) {
-            currentView = view;
-            
-            // Atualizar botões de navegação
-            document.querySelectorAll('.nav-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Mostrar/esconder views
-            if (view === 'timeline') {
-                document.getElementById('timeline-view').classList.remove('hidden');
-                document.getElementById('charts-view').classList.add('hidden');
-            } else {
-                document.getElementById('timeline-view').classList.add('hidden');
-                document.getElementById('charts-view').classList.remove('hidden');
-                generateBarChart();
-            }
         }
 
         // Função para alternar entre meses
@@ -883,27 +656,24 @@
         // Função para gerar conteúdo do mês selecionado
         function generateMonthContent() {
             const data = iofData[currentMonth];
-            const monthNames = { 'mar': 'mar/2025', 'abr': 'abr/2025', 'mai': 'mai/2025' };
+            const monthNames = { 
+                'abr': 'Abril/2025', 
+                'mai': 'Maio/2025', 
+                'jun': 'Junho/2025',
+                'jul': 'Julho/2025'
+            };
             
             const content = `
                 <div class="card">
-                    <div class="card-title">Resumo por Alíquota - ${monthNames[currentMonth]}</div>
+                    <div class="card-title">Resumo IOF 3,12% - ${monthNames[currentMonth]}</div>
                     <div class="summary-grid">
                         <div class="summary-item summary-total">
                             <div class="summary-label">Valor Total das Operações</div>
                             <div class="summary-value">${formatCurrency(data.total.valor)}</div>
                         </div>
-                        <div class="summary-item summary-038">
-                            <div class="summary-label" style="color: #1e40af;">🔵 IOF 0,38%</div>
-                            <div class="summary-value" style="color: #1e40af;">${formatCurrency(data.total.iof_038)}</div>
-                        </div>
-                        <div class="summary-item summary-312">
+                        <div class="summary-item summary-iof">
                             <div class="summary-label" style="color: #dc2626;">🔴 IOF 3,12%</div>
-                            <div class="summary-value" style="color: #dc2626;">${formatCurrency(data.total.iof_312)}</div>
-                        </div>
-                        <div class="summary-item summary-35">
-                            <div class="summary-label" style="color: #d97706;">🟡 IOF 3,5%</div>
-                            <div class="summary-value" style="color: #d97706;">${formatCurrency(data.total.iof_35)}</div>
+                            <div class="summary-value" style="color: #dc2626;">${formatCurrency(data.total.iof)}</div>
                         </div>
                     </div>
                 </div>
@@ -931,27 +701,153 @@
                             <span>${formatCurrency(modalData.valor)}</span>
                         </div>
                         
-                        <div class="modal-row iof-038">
-                            <span style="color: #1e40af; font-weight: 600;">🔵 IOF 0,38%:</span>
-                            <span style="color: #1e40af; font-weight: 700;">${formatCurrency(modalData.iof_038)}</span>
-                        </div>
-                        <div class="modal-row iof-312">
+                        <div class="modal-row iof">
                             <span style="color: #dc2626; font-weight: 600;">🔴 IOF 3,12%:</span>
-                            <span style="color: #dc2626; font-weight: 700;">${formatCurrency(modalData.iof_312)}</span>
+                            <span style="color: #dc2626; font-weight: 700;">${formatCurrency(modalData.iof)}</span>
                         </div>
-                        <div class="modal-row iof-35">
-                            <span style="color: #d97706; font-weight: 600;">🟡 IOF 3,5%:</span>
-                            <span style="color: #d97706; font-weight: 700;">${formatCurrency(modalData.iof_35)}</span>
-                        </div>
-                        
-                        
                     </div>
                 </div>
             `;
         }
 
-        // Função para gerar gráfico de barras
-      
+        // Função para abrir modal de adicionar mês
+        function openAddMonthModal() {
+            document.getElementById('addMonthModal').style.display = 'flex';
+        }
+
+        // Função para fechar modal
+        function closeAddMonthModal() {
+            document.getElementById('addMonthModal').style.display = 'none';
+            document.getElementById('addMonthForm').reset();
+        }
+
+        // Função para adicionar novo mês
+        document.getElementById('addMonthForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const monthYear = document.getElementById('monthYear').value;
+            const aereo = parseFloat(document.getElementById('aereoValue').value);
+            const maritimo = parseFloat(document.getElementById('maritimoValue').value);
+            const pickup = parseFloat(document.getElementById('pickupValue').value);
+            
+            // Calcular IOF 3,12%
+            const aereoIOF = aereo * 0.0312;
+            const maritimoIOF = maritimo * 0.0312;
+            const pickupIOF = pickup * 0.0312;
+            const totalValue = aereo + maritimo + pickup;
+            const totalIOF = aereoIOF + maritimoIOF + pickupIOF;
+            
+            // Criar chave única para o mês (primeiros 3 caracteres)
+            const monthKey = monthYear.toLowerCase().substring(0, 3);
+            
+            // Adicionar aos dados
+            iofData[monthKey] = {
+                aereo: { valor: aereo, iof: aereoIOF },
+                maritimo: { valor: maritimo, iof: maritimoIOF },
+                pickup: { valor: pickup, iof: pickupIOF },
+                total: { valor: totalValue, iof: totalIOF }
+            };
+            
+            // Adicionar botão na navegação
+            const navigation = document.querySelector('.month-navigation');
+            const addButton = navigation.querySelector('.add-month-button');
+            const newButton = document.createElement('button');
+            newButton.className = 'month-button';
+            newButton.textContent = monthYear;
+            newButton.onclick = () => showMonth(monthKey);
+            navigation.insertBefore(newButton, addButton);
+            
+            closeAddMonthModal();
+            alert('Mês adicionado com sucesso!');
+        });
+
+        // Função para download do Excel
+        function downloadExcel() {
+            // Preparar dados para o Excel
+            const excelData = [];
+            
+            // Cabeçalhos
+            excelData.push(['MÊS', 'MODALIDADE', 'VALOR OPERAÇÕES (R$)', 'IOF 3,12% (R$)']);
+            
+            // Dados por mês
+            const monthNames = {
+                'abr': 'ABRIL/2025',
+                'mai': 'MAIO/2025', 
+                'jun': 'JUNHO/2025',
+                'jul': 'JULHO/2025'
+            };
+            
+            Object.keys(iofData).forEach(monthKey => {
+                const monthData = iofData[monthKey];
+                const monthName = monthNames[monthKey] || monthKey.toUpperCase();
+                
+                // Adicionar dados de cada modalidade
+                excelData.push([monthName, 'Aéreo', monthData.aereo.valor, monthData.aereo.iof]);
+                excelData.push(['', 'Marítimo', monthData.maritimo.valor, monthData.maritimo.iof]);
+                excelData.push(['', 'Pickup', monthData.pickup.valor, monthData.pickup.iof]);
+                excelData.push(['', 'TOTAL', monthData.total.valor, monthData.total.iof]);
+                excelData.push(['', '', '', '']); // Linha em branco
+            });
+            
+            // Criar planilha
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // Formatação profissional
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            
+            // Definir larguras das colunas
+            ws['!cols'] = [
+                {wch: 15}, // MÊS
+                {wch: 15}, // MODALIDADE  
+                {wch: 20}, // VALOR OPERAÇÕES
+                {wch: 20}  // IOF 3,12%
+            ];
+            
+            // Aplicar formatação nas células
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                    if (!ws[cellAddress]) continue;
+                    
+                    // Cabeçalhos em negrito
+                    if (R === 0) {
+                        ws[cellAddress].s = {
+                            font: {bold: true, color: {rgb: "FFFFFF"}},
+                            fill: {fgColor: {rgb: "0F766E"}},
+                            alignment: {horizontal: "center"}
+                        };
+                    }
+                    
+                    // Formatação de moeda para colunas de valores
+                    if ((C === 2 || C === 3) && R > 0 && ws[cellAddress].v) {
+                        ws[cellAddress].z = 'R$ #,##0.00';
+                    }
+                    
+                    // Totais em negrito
+                    if (ws[cellAddress].v === 'TOTAL') {
+                        ws[cellAddress].s = {
+                            font: {bold: true},
+                            fill: {fgColor: {rgb: "F3F4F6"}}
+                        };
+                    }
+                }
+            }
+            
+            // Criar workbook e adicionar planilha
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "IOF 3,12% - RA 2025");
+            
+            // Adicionar propriedades do documento
+            wb.Props = {
+                Title: "Relatório IOF 3,12% - RA 2025",
+                Subject: "Impactos do IOF no RA",
+                Author: "PGL Brasil",
+                Company: "PGL Brasil - Supply Chain Management"
+            };
+            
+            // Fazer download
+            XLSX.writeFile(wb, `IOF_312_RA_2025_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
 
         // Verificar se logo existe e mostrar/esconder placeholder
         function checkLogo() {
@@ -974,7 +870,6 @@
 
         // Inicializar página quando DOM estiver carregado
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Página carregada - Inicializando conteúdo');
             generateMonthContent();
             checkLogo();
         });
@@ -982,11 +877,9 @@
         // Fallback para garantir que o conteúdo seja gerado
         window.addEventListener('load', function() {
             if (!document.getElementById('month-content').innerHTML.trim()) {
-                console.log('Fallback - Gerando conteúdo');
                 generateMonthContent();
             }
         });
     </script>
 </body>
 </html>
-
