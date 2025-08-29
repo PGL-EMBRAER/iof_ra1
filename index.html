@@ -1060,6 +1060,41 @@
                 closeAddMonthModal();
             }
         });
+
+
+
+
+
+
+
+
+
+        // Verificar se logo existe
+function checkLogo() {
+    const logoImg = document.getElementById('logo-img');
+    const logoPlaceholder = document.getElementById('logo-placeholder');
+    
+    logoImg.onerror = function() {
+        logoImg.style.display = 'none';
+        logoPlaceholder.style.display = 'block';
+    };
+}
+
+// Chamar a função quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    checkLogo();
+    // ... resto do código que já existe
+});
+
+
+
+
+
+
+
+
+
+        
     </script>
 </body>
 </html>
